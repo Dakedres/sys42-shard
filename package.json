@@ -1,10 +1,10 @@
 {
   "name": "sys42-shard",
   "version": "1.0.0",
-  "description": "A utility to shard the Windows93 sys42.js",
-  "main": "shard.js",
+  "description": "A utility to shard the Windows93 sys42.js file.",
+  "main": "index.js",
   "scripts": {
-    "shard": "node index.js"
+    "init": "chmod +x ./cli.js"
   },
   "repository": {
     "type": "git",
@@ -15,6 +15,9 @@
   ],
   "author": "Dakedres",
   "license": "ISC",
+  "bin": {
+    "shard": "./index.js"
+  },
   "bugs": {
     "url": "https://github.com/Dakedres/sys42-sharder/issues"
   },

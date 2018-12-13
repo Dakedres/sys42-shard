@@ -1,55 +1,90 @@
 const fs = require('fs'),
       path = require('path'),
+      EventEmitter = require('events'),
+      { promisify } = require('util')
 
-      yargs = require('yargs'),
-      colors = require('colors')
+const readFileAsync = promisify(fs.readFile),
+      mkdirAsync = promisify(fs.mkdir),
+      writeFileAsync = promisify(fs.writeFile),
 
-const fixedLength = (string, length) => string.length > length ? `${string.slice(0, -3)}...` : string.padEnd(length),
-      fileArg = file => path.isAbsolute(file) ? file : path.resolve(proces.cwd(), file)
+      { posix } = path,
 
-const {source, destination, verbose} = yargs
-  .alias('source', 's')
-  .describe('source', 'A path pointing to the sys42.js file to shard.')
-  .coerce('source', fileArg)
+      isFilePath = /^([a-zA-Z\d\.\-_]+\/)*[a-zA-Z\d\.\-_]+\.[a-zA-Z]+$/
 
-  .alias('destination', 'd')
-  .describe('destination', 'A path pointing to the directory in which to place the sharded files.')
-  .coerce('destination', fileArg)
+class ShardingWatcher extends EventEmitter {
+  constructor(source, destination, verbose) {
+    super()
 
-  .alias('verbose', 'v')
-  .describe('verbose', 'Print everything the sharder is doing to the console.')
-  .boolean('verbose')
+    this.handler = new Promise(async (resolve, reject) => {
+      this.close = resolve
 
-  .argv
+      const contents = (await readFileAsync(source, 'utf8')).split('\n'),
+            shards = new Map()
+      
+      let currentFile
 
-let progress
-  
-const log = value => {
-  message = fixedLength(progress.title, 24).bold
-          + ` ${parseInt((progress.current / progress.total) * 100).toString()}% `.padEnd(5).yellow
-          + ` [ ${fixedLength(value, 24)} ]`
+      super.emit('ready')
 
-  console.log(message)
+      if(verbose) super.emit('log', 'startShardSearching', contents.length)
 
-  progress.current++
-}
+      for(let i = 0; i < contents.length; i++) {
+        const line = contents[i]
 
-const newOperation = title => value => {
-  progress = {
-    total: value,
-    current: 0,
-    title
+        if(line.startsWith('//') && isFilePath.test(line.slice(2))) {
+          if(currentFile) shards.set(currentFile.path, currentFile.contents.join('\n'))
+          
+          currentFile = {
+            path: line.slice(2),
+            contents: []
+          }
+
+          if(verbose) super.emit('log', 'shardFound', currentFile.path)
+        } else {
+          currentFile.contents.push(line)
+        }
+      }
+
+      const directories = Array.from(shards)
+        .map(([ file ]) => file)
+        .reduce((directories, dir) => {
+          posix.dirname(dir)
+            .split(posix.sep)
+            .map((v, i, dir) => dir.slice(0, i + 1).join(path.sep))
+            .forEach(dir => directories.indexOf(dir) === -1 ? directories.push(dir) : null)
+
+          return directories
+        }, [])
+
+      if(verbose) super.emit('log', 'startDirCreation', directories.length)
+
+      for(let i = 0; i < directories.length; i++) {
+        const dir = directories[i]
+
+        if(verbose) super.emit('log', 'dirCreation', dir)
+
+        await mkdirAsync(path.join(destination, dir))
+      }
+
+      if(verbose) super.emit('log', 'startFileCreation', shards.size)
+
+      const entries = shards.entries()
+
+      for(let i = 0; i < shards.size; i++) {
+        const [file, content] = entries.next().value
+
+        if(verbose) super.emit('log', 'fileCreation', file)
+
+        await writeFileAsync(path.join(destination, file), content, 'utf8')
+      }
+
+      this.close(shards)
+    })
+      .catch(err => super.emit('error', err))
+      .then(data => {
+        super.emit('close', data)
+        this.handler = null
+      })
   }
 }
 
-new ModulizerWatcher(source, destination, verbose)
-  .on('error', console.error)
-  .on('ready', () => console.log(`Sharding ${source}...`))
-  .on('log', (name, value) => [
-    newOperation('Finding shards...'),
-    log,
-    newOperation('Creating directories...'),
-    log,
-    newOperation('Creating files...')
-  ][name](value))
-  .on('close', () => console.log('Done!'.brightGreen))
+module.exports = ShardingWatcher
