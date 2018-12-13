@@ -5,10 +5,11 @@ A utility to shard the Windows93 sys42.js file. Please note this package only wo
 ## Installation
 
     git clone https://github.com/Dakedres/sys42-shard.git
+    cd sys42-shard
     npm install
     npm run init
 
-Then go ahead and run `cd sys42-shard` and `./cli --help`, you can go onto [usage](#usage) for more details.
+Then go ahead and run `./cli --help`, you can go onto [usage](#usage) for more details.
 
 If for some reason you want to be able to use sys42-shard globally (although I wouldn't recommend it) you can do so by running `npm link` in the package's directory. And to put it back in it's place you can use `npm unlink` (while in it's directory mind you).
 
