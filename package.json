@@ -16,7 +16,7 @@
   "author": "Dakedres",
   "license": "ISC",
   "bin": {
-    "shard": "./index.js"
+    "sys42-shard": "./cli.js"
   },
   "bugs": {
     "url": "https://github.com/Dakedres/sys42-sharder/issues"

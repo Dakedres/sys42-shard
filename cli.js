@@ -35,13 +35,13 @@ let {source, destination, isolate, verbose} = yargs
 
   .argv
 
-;(async () => {
-  console.log('Sharding sys42.js!'.green)
+const log = verbose ? console.log : () => {}
 
+;(async () => {
   if(isolate) {
     destination = path.join(destination, 'sys42')
 
-    console.log('Creating directory to place files in...'.dim)
+    if(verbose) console.log('Creating directory to place files in...'.dim)
     await mkdirAsync(destination)
   }
 
@@ -68,7 +68,7 @@ let {source, destination, isolate, verbose} = yargs
   const shards = await new Promise((resolve, reject) => 
     new ShardingWatcher(source, destination, verbose)
       .on('error', console.error)
-      .on('ready', () => console.log(`Sharding ${source}...`))
+      .on('ready', () => verbose && console.log(`Sharding ${source}...`))
       .on('log', (name, value) => ({
         'startShardSearching': newOperation('Finding shards...'),
         'shardFound': log,
@@ -80,6 +80,8 @@ let {source, destination, isolate, verbose} = yargs
       .on('close', resolve)
   )
 
-  console.log(`Created ${shards.size} shards!`.dim)
-  console.log('Done!'.green)
+  if(verbose) {
+    console.log(`Created ${shards.size} shards!`.dim)
+    console.log('Done!'.green)
+  }
 })()
