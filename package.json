@@ -1,6 +1,6 @@
 {
   "name": "sys42-shard",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A utility to shard the Windows93 sys42.js file.",
   "main": "index.js",
   "scripts": {
