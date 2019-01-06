@@ -18,9 +18,9 @@ class ShardingWatcher extends EventEmitter {
     this.handler = new Promise(async (resolve, reject) => {
       this.close = resolve
 
-      const contents = (await readFileAsync(source, 'utf8')).split('\n'),
+      const contents = (await readFileAsync(source, 'utf8')).split('\n').concat([ '//END' ]),
             shards = new Map()
-      
+
       let currentFile
 
       super.emit('ready')
@@ -30,7 +30,7 @@ class ShardingWatcher extends EventEmitter {
       for(let i = 0; i < contents.length; i++) {
         const line = contents[i]
 
-        if(line.startsWith('//') && isFilePath.test(line.slice(2))) {
+        if(line.startsWith('//') && (isFilePath.test(line.slice(2)) || line.slice(2) === 'END')) {
           if(currentFile) shards.set(currentFile.path, currentFile.contents.join('\n'))
           
           currentFile = {
@@ -38,7 +38,7 @@ class ShardingWatcher extends EventEmitter {
             contents: []
           }
 
-          if(verbose) super.emit('log', 'shardFound', currentFile.path)
+          if(currentFile.path !== 'END' && verbose) super.emit('log', 'shardFound', currentFile.path)
         } else {
           currentFile.contents.push(line)
         }
